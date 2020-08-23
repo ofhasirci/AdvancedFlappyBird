@@ -339,7 +339,7 @@ const bullet = {
         if(frames%240 == 0){
             this.bullets.push({
                 x: canvas.width,
-                y: Math.floor(Math.random() * (fg.y - this.h/2)) + this.h/2
+                y: Math.floor(Math.random() * (fg.y - this.h)) + this.h
             });
         }
     
