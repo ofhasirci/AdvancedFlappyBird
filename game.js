@@ -41,12 +41,28 @@ skySprite.src = "img/SkyTileSprite.png";
 const bulletSprite = new Image();
 bulletSprite.src = "img/bullet.png";
 
+// Load Audios
+const flapSound = new Audio();
+flapSound.src = "sounds/sfx_flap.wav";
+
+const swooshSound = new Audio();
+swooshSound.src = "sounds/sfx_swooshing.wav";
+
+const hitSound = new Audio();
+hitSound.src = "sounds/sfx_hit.wav";
+
+const scoreSound = new Audio();
+scoreSound.src = "sounds/sfx_point.wav";
+
+const dieSound = new Audio();
+dieSound.src = "sounds/sfx_die.wav";
+
+
 // Game States
 const gameStates = {
     start : 0,
     play : 1,
-    columnHit: 2,
-    over : 3
+    over : 2
 }
 
 // Bird
@@ -70,15 +86,16 @@ const birdy = {
     force: 4.5,
 
     draw : function(){
+        let b = health < 0 ? 0 : health;
         if(gameState != gameStates.over){
             let p = this.animation[this.index];
 
-            context.drawImage(birdHeros[health], p.sX, p.sY, this.w, this.h,
+            context.drawImage(birdHeros[b], p.sX, p.sY, this.w, this.h,
                 this.x-this.w/2, this.y-this.h/2, this.w, this.h);
         }else{
             let p = this.animation[2];
             
-            context.drawImage(birdHeros[health], p.sX, p.sY, this.w, this.h,
+            context.drawImage(birdHeros[b], p.sX, p.sY, this.w, this.h,
                 this.x-this.w/2, this.y, this.w, this.h);
         }
         
@@ -100,12 +117,17 @@ const birdy = {
                 this.y += this.speed;
             }
             else{
-                this.speed = 0;
+                if(gameState != gameStates.over) this.speed = 0;
             }
 
             if (this.y + this.h/2 >= canvas.height - fg.h){
                 this.y = canvas.height - fg.h - this.h/2;
-                gameState = gameStates.over;
+                
+                if(gameState == gameStates.play){
+                    gameState = gameStates.over;
+                    dieSound.play();
+                }
+                
             }
         }
         else {
@@ -200,8 +222,8 @@ const columns = {
     },
 
     update : function(){
-        if(gameState != gameStates.play ) return;
-
+        if(gameState != gameStates.play) return;
+        
         if(frames%150 == 0){
             //Each 150 frame there will a pair of column
 
@@ -212,7 +234,7 @@ const columns = {
             if(boolMove == 1) {
                 this.moveY = Math.round(Math.random()) == 1 ? 0.35 : -0.35;
             }
-            
+
             this.positions.push({
                 x: canvas.width,
                 y: -150 * (Math.random() +1),
@@ -231,11 +253,6 @@ const columns = {
                 if(birdy.w + birdy.x > c.x + this.w + 5){
                     this.columnHit = 0;
                     if(frames%23 == 0) health--;
-                    if(health < 0){
-                        health = 0;
-                        gameState = gameStates.over;
-                        return;
-                    }
                 }
                 else {
                     c.x -= this.moveXSlow;
@@ -245,23 +262,27 @@ const columns = {
 
                 if(birdy.w/2 + birdy.x >= c.x && birdy.x - birdy.w/2 <= c.x + this.w
                     && birdy.y + birdy.h/2 >= c.y && birdy.y - birdy.h/2 <= c.y + this.h){
-                    if(health == 0){
+                    if(health < 0){
                         gameState = gameStates.over;
+                        hitSound.play();
                         return;
                     }
                     this.columnHit = 1;
                     c.hit = 1;
+                    dieSound.play();
                 }
     
                 let bottomColY = c.y + this.h + this.gap;
                 if(birdy.w/2 + birdy.x >= c.x && birdy.x - birdy.w/2 <= c.x + this.w
                     && birdy.y + birdy.h/2 >= bottomColY && birdy.y - birdy.h/2 <= bottomColY + this.h){
-                    if(health == 0){
+                    if(health < 0){
                         gameState = gameStates.over;
+                        hitSound.play();
                         return;
                     }
                     this.columnHit = 1; 
-                    c.hit = 1; 
+                    c.hit = 1;
+                    dieSound.play();
                 }
 
                 if(health < 0) gameState = gameStates.over;
@@ -276,7 +297,10 @@ const columns = {
 
             if(c.x + this.w <= 0){
                 this.positions.shift();
-                if(c.hit == 0) score.value++;
+                if(c.hit == 0) {
+                    score.value++;
+                    scoreSound.play();
+                }
             }
         }
 
@@ -325,7 +349,8 @@ const bullet = {
             if(birdy.r + birdy.x >= b.x && birdy.x - birdy.r <= b.x + this.w
                 && birdy.y + birdy.r >= b.y && birdy.y - birdy.r <= b.y + this.h){
                 columns.hit = 0;
-                gameState = gameStates.over;    
+                gameState = gameStates.over;
+                hitSound.play();
             }
 
             b.x -= this.moveX;
@@ -398,7 +423,8 @@ const healthState = {
     y: canvas.height - 30,
 
     draw : function(){
-        context.drawImage(birdHeros[health], this.sX, this.sY, this.w, this.h,
+        let b = health < 0 ? 0 : health;
+        context.drawImage(birdHeros[b], this.sX, this.sY, this.w, this.h,
             this.x, this.y, this.w, this.h);
 
         context.fillStyle = "#FFF";
@@ -406,8 +432,8 @@ const healthState = {
 
         context.lineWidth = 2;
         context.font = "28px Luckiest Guy";
-        context.fillText(health, this.x + this.w + 5, canvas.height - 10);
-        context.strokeText(health, this.x + this.w + 5, canvas.height - 10);
+        context.fillText(b, this.x + this.w + 5, canvas.height - 10);
+        context.strokeText(b, this.x + this.w + 5, canvas.height - 10);
     }
 
 }
@@ -469,9 +495,11 @@ canvas.addEventListener("click", function(event){
         case gameStates.start:
             health = 3;
             gameState = gameStates.play;
+            swooshSound.play();
             break;
         case gameStates.play:
             birdy.fly();
+            if(columns.columnHit == 0) flapSound.play();
             break;
         case gameStates.over:
             let box = canvas.getBoundingClientRect();
@@ -487,6 +515,15 @@ canvas.addEventListener("click", function(event){
                 gameState = gameStates.start;
             }
             break;
+    }
+});
+
+document.addEventListener("keydown", function(event){
+    console.log(event.keyCode);
+    if(event.keyCode == 32 && gameState != gameStates.over){
+        gameState = gameStates.play;
+        birdy.fly();
+        if(columns.columnHit == 0) flapSound.play();
     }
 });
 
