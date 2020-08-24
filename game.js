@@ -129,6 +129,13 @@ const birdy = {
                 }
                 
             }
+
+            if(this.y - this.h/2 <= -70){
+                if(gameState == gameStates.play){
+                    gameState = gameStates.over;
+                    dieSound.play();
+                }
+            }
         }
         else {
             this.y = 150;
